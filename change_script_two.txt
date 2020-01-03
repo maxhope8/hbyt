@@ -1,0 +1,495 @@
+# 1 (检查UID为0的账户)
+uid_is_0=`awk -F: '($3 == 0) { print $1 }' /etc/passwd`
+if [ -n $uid_id_0 ];then
+    echo uid_is_0=$uid_is_0
+else
+    echo uid_is_0=null
+fi
+
+
+# 2  (检查UID相同的账户)None 正常，如果有两个账号的uid相同才会有值显示
+uid=`awk -F: '{a[$3]++}END{for(i in a)if(a[i]>1)print i}' /etc/passwd`
+if [ -n "$uid" ]; then
+    uid_is_same=`more /etc/passwd | grep $uid | awk -F: '{print $1}' 2>/dev/zero`
+    if [ -n "$uid_is_same" ];then
+        echo uid_is_same=$uid_is_same
+    else
+        echo uid_is_same=null
+    fi
+else
+    echo uid_is_same=null
+fi
+
+
+# 3 (检查可以登录的账户)
+per_login=`more /etc/passwd | grep -v 'nologin'`
+if [ -n "$per_login" ];then
+    echo per_login=$per_login
+else
+    echo per_login=null
+fi
+
+
+# 4 (检查非默认账户)None    输出uid大于UID_MIN设置（默认是500）的用户
+uid2=`grep "^UID_MIN" /etc/login.defs | awk '{print $2}'`
+if [ -n "$uid2" ];then
+    non_default_user=`gawk -F: '{if ($3>='$uid2' && $3!=65534) {print $1}}' /etc/passwd 2>/dev/zero`
+    if [ -n "$non_default_user" ];then
+        echo non_default_user=$non_default_user
+    else
+        echo non_default_user=null
+    fi
+else
+    echo non_default_user=null
+fi
+
+
+# 5 (检查空密码账户)None    正常，如果没有设置密码的账号才会有显示
+non_password_user=`gawk -F: '($2=="") {print $1}' /etc/shadow`
+if [ -n "$non_password_user" ];then
+    echo non_password_user=$non_password_user
+else
+    echo non_password_user=null
+fi
+
+
+# 6 (检查允许Root登录SSH权限的账户)
+root_loginSsh_permission=`more /etc/ssh/sshd_config | grep PermitRootLogin | grep -v '^#'`
+if [ -n "$root_loginSsh_permission" ];then
+    echo root_loginSsh_permission=$root_loginSsh_permission
+else
+    echo root_loginSsh_permission=null
+fi
+
+# 7 (检查执行系统命令历史记录)
+system_history_commond=`more /root/.bash_history`
+if [ -n "$system_history_commond" ];then
+    echo system_history_commond=$system_history_commond
+else
+    echo system_history_commond=null
+fi
+
+
+# 8 (检查执行数据库命令历史记录)
+database_history_commond=`more /root/.mysql_history 2>/dev/zero`
+if [ -n "$database_history_commond" ];then
+    echo database_history_commond=$database_history_commond
+else
+    echo database_history_commond=null
+fi
+
+
+# 9 (检查进程)
+inspection_process=`ps -eHo euser,uid,pid,ppid,%cpu,%mem,lstart,tty,etime,time,stat,comm,args`
+if [ -n "$inspection_process" ];then
+    echo inspection_process=$inspection_process
+else
+    echo inspection_process=null
+fi
+
+# 10 (检查Xinetd服务)None
+daemon_process=`more /etc/xinetd.d/rsync 2>/dev/zero`
+if [ -n "$daemon_process" ];then
+    echo daemon_process=$daemon_process
+else
+    echo daemon_process=null
+fi
+
+# 11 (检查hosts文件)
+hosts_info=`more /etc/hosts`
+if [ -n "$hosts_info" ];then
+    echo hosts_info=$hosts_info
+else
+    echo hosts_info=null
+fi
+
+# 12 (检查公钥)
+public_key=`more /root/.ssh/*.pub 2>/dev/zero`
+if [ -n "$public_key" ];then
+    echo public_key=$public_key
+else
+    echo public_key=null
+fi
+
+# 13 (检查私钥)
+private_key=`more /root/.ssh/id_rsa 2>/dev/zero`
+if [ -n "$private_key" ];then
+    echo private_key=$private_key
+else
+    echo private_key=null
+fi
+
+# 14 (检查脚本文件)
+script_files=`find /bin /sbin /home /usr/bin /usr/sbin /usr/local /tmp -maxdepth 3 -name "*.*" 2>/dev/zero | egrep '\.(py|sh|per|pl)$' | xargs md5sum`
+if [ -n "$script_files" ];then
+    echo script_files=$script_files
+else
+    echo script_files=null
+fi
+
+# 15 (检查最近一天的修改文件)
+modified_files_in_24h=`find /bin /sbin/ /home /usr/bin /usr/sbin /usr/local /tmp -mtime 0 2>/dev/zero | grep -E '\.(py|sh|per|pl|php|asp|jsp)$' | xargs md5sum`
+if [ -n "$modified_files_in_24h" ];then
+    echo modified_files_in_24h=$modified_files_in_24h
+else
+    echo modified_files_in_24h=null
+fi
+
+# 16 (检查TCP连接)
+TCP_connection=`netstat -antlp`
+if [ -n "$TCP_connection" ];then
+    echo TCP_connection=$TCP_connection
+else
+    echo TCP_connection=null
+fi
+
+# 17 (检查UDP连接)
+UDP_connection=`netstat -anulp`
+if [ -n "$UDP_connection" ];then
+    echo UDP_connection=$UDP_connection
+else
+    echo UDP_connection=null
+fi
+
+# 18 (检查 unix 连接)
+unix_process=`netstat -nxlp`
+if [ -n "$unix_process" ];then
+    echo unix_process=$unix_process
+else
+    echo unix_process=null
+fi
+
+# 19 (检查正在连接的bash)None   显示正常，详情咨询刀哥
+netstat_netstat=`netstat -antlp | grep EST | grep bash`
+if [ -n "$netstat_netstat" ];then
+    echo netstat_netstat=$netstat_netstat
+else
+    echo netstat_netstat=null
+fi
+
+# 20 (检查新建用户组日志)None   正常，secure日志里有新创建账号时会有显示
+new_user=`more /var/log/secure* | grep 'new user' | awk '{print $8}' | awk -F '[=,]' '{print $2}' | sort | uniq -c`
+if [ -n "$new_user" ];then
+    echo new_user=$new_user
+else
+    echo new_user=null
+fi
+
+
+# 21 (检查SSH登录成功日志)None   正常，secure日志里有新创建group时会有显示
+user_group=`more /var/log/secure* | grep 'new group' | awk '{print $8}' | awk -F '[=,]' '{print $2}' | sort | uniq -c`
+if [ -n "$user_group" ];then
+    echo user_group=$user_group
+else
+    echo user_group=null
+fi
+
+# 22  (检查登录失败日志)None      显示正常，统计secure日志中成功登陆的IP和次数
+successful_login_info=`grep 'Accepted' /var/log/secure* | awk '{print $11}' | sort | uniq -c | sort -nr`
+if [ -n "$successful_login_info" ];then
+    echo successful_login_info=$successful_login_info
+else
+    echo successful_login_info=null
+fi
+
+# 23 (检查计划任务日志-下载)None       显示正常，统计secure日志中登陆失败的IP和次数
+failed_login_info=`grep 'Failed' /var/log/secure* | awk '{print $11}' | sort | uniq -c | sort -nr`
+if [ -n "$failed_login_info" ];then
+    echo failed_login_info=$failed_login_info
+else
+    echo failed_login_info=null
+fi
+
+
+# 24 (检查计划任务日志-运行)None       已修改，查看crontab中是否有wget和curl命令记录
+time_cron_download=`more /var/log/cron* | grep -E 'wget|curl'`
+if [ -n "$time_cron_download" ];then
+    echo time_cron_download=$time_cron_download
+else
+    echo time_cron_download=null
+fi
+
+# 25 (检查服务启动项)None       正常，查看crontab中是否脚本执行
+cron_to_run=`more /var/log/cron* | grep -E "\.py$|\.sh$|\.pl$"`
+if [ -n "$cron_to_run" ];then
+    echo cron_to_run=$cron_to_run
+else
+    echo cron_to_run=null
+fi
+
+# 26 (检查计划任务)None       正常，检查开机启动任务中是否有脚本
+systemnum=`cat /etc/redhat-release |grep -o '[0-9]' |head -n 1`
+case "$systemnum" in
+7)
+start_tasks=`systemctl list-unit-files | grep enabled | awk '{print $1}' | grep -E '\.(sh|per|py)$'`
+if [ -n "$start_tasks" ];then
+    echo start_tasks=$start_tasks
+else
+    echo start_tasks=null
+fi
+;;
+6)
+start_tasks=`chkconfig --list | grep on | awk '{print $1}' | grep -E '\.(sh|per|py)$'`
+if [ -n "$start_tasks" ];then
+    echo start_tasks=$start_tasks
+else
+    echo start_tasks=null
+fi
+;;
+*)
+echo "start_tasks=null"
+esac
+
+# 27 (检查SSH状态)None       正常，检查定时任务中chmod|useradd|groupadd|chattr；wget|curl；sh|pl|py
+scheduled_tasks=`egrep '((chmod|useradd|groupadd|chattr)|((wget|curl)*\.(sh|pl|py)$))' /etc/cron*/* /var/spool/cron/* 2>/dev/zero`
+if [ -n "$scheduled_tasks" ];then
+    echo scheduled_tasks=$scheduled_tasks
+else
+    echo scheduled_tasks=null
+fi
+
+# 28 (检查危险软件或工具)None       显示正常，检查ssh版本及sshd最后修改信息
+s1=`ssh -V`
+stat=`stat /usr/sbin/sshd`
+ssh_stat="$s1 $stat"
+if [ -n "$ssh_stat" ];then
+    echo ssh_stat=$ssh_stat
+else
+    echo ssh_stat=null
+fi
+
+# 29 (检查RPM套件)
+installed_abnormal_info=`rpm -qa  | awk -F- '{print $1}' | sort | uniq | grep -E '^(ncat|sqlmap|nmap|beef|nikto|john|ettercap|backdoor|proxy|msfconsole|msf)$'`
+if [ -n "$installed_abnormal_info" ];then
+    echo installed_abnormal_info=$installed_abnormal_info
+else
+    echo installed_abnormal_info=null
+fi
+
+
+# 30 (检查网络共享)
+rpm=`rpm -Va 2>/dev/zero`
+if [ -n "$rpm" ];then
+    echo rpm=$rpm
+else
+    echo rpm=null
+fi
+
+
+# 31 (检查可疑Web日志-Tools)None       正常，显示是否有nfs配置exportfs
+network_share=`exportfs 2>/dev/zero`
+if [ -n "$network_share" ];then
+    echo network_share=$network_share
+else
+    echo network_share=null
+fi
+
+# 32 (检查可疑Web日志-POST)None       已修改，检查http访问日志
+httpd_logs_attack_behavior=`egrep '(select|script|acunetix|sqlmap)' /var/log/httpd/access_log 2>/dev/zero`
+if [ -n "$httpd_logs_attack_behavior" ];then
+    echo httpd_logs_attack_behavior=$httpd_logs_attack_behavior
+else
+    echo httpd_logs_attack_behavior=null
+fi
+
+# 33 (检查可疑Web日志-长度)None       正常，统计http访问日志POST次数
+post_request=`more /var/log/httpd/access_log 2>/dev/zero | grep 'POST' | awk '{print $1}' | sort | uniq -c | sort -nr`
+if [ -n "$post_request" ];then
+    echo post_request=$post_request
+else
+    echo post_request=null
+fi
+
+# 34 (检查恶意样本)None       正常，检查http日志
+content_more_than_1_5kb=`awk '{if($10>1500){print $0}}' /var/log/httpd/access_log 2>/dev/zero | grep POST | grep 200 | grep php`
+if [ -n "$content_more_than_1_5kb" ];then
+    echo content_more_than_1_5kb=$content_more_than_1_5kb
+else
+    echo content_more_than_1_5kb=null
+fi
+
+# 35 (检查当前账户登录信息)None       没看明白有什么用，问刀哥
+unset dict_sample
+declare -A dict_sample
+dict_sample=([mail.xjsbweb.com]="/usr/sbin/prel" [s.rammus.me]="/usr/sbin/rpcgssd" [s.rammus.me-2]="/usr/sbin/ntpcheck")
+malicious_sample=""
+for sample in $(echo ${!dict_sample[*]})
+do
+    tmp=`stat ${dict_sample[$sample]} 2>/dev/zero`
+    if [ -n "$tmp" ];then
+        s1=`echo -e ${sample}`
+        malicious_sample1="$s1 $tmp"
+        malicious_sample = "$malicious_sample1 $malicious_sample"
+    fi
+done
+if [ -n "$malicious_sample" ];then
+    echo malicious_sample=$malicious_sample
+else
+    echo malicious_sample=null
+fi
+
+
+# 36 (检查所有账户最近多次登录信息)
+logged_user=`w`
+if [ -n "$logged_user" ];then
+    echo logged_user=$logged_user
+else
+    echo logged_user=null
+fi
+
+
+# 37 (检查所有账户最近一次登录信息)
+recent_login_info=`last`
+if [ -n "$recent_login_info" ];then
+    echo recent_login_info=$recent_login_info
+else
+    echo recent_login_info=null
+fi
+
+
+# 38 (检查白名单)
+all_user_login=`lastlog | grep -v "\*\*"`
+if [ -n "$all_user_login" ];then
+    echo all_user_login=$all_user_login
+else
+    echo all_user_login=null
+fi
+
+
+
+# 39（去掉）       显示白名单，grep -v '#'这么写有问题
+remote_access=`more /etc/hosts.allow 2>/dev/zero | grep -v '#'`
+if [ -n "$remote_access" ];then
+    echo remote_access=$remote_access
+else
+    echo remote_access=null
+fi
+
+
+# 40 （检查网络连接）      grep -v '#'这么写有问题
+deny_remote_accessmore=`more /etc/hosts.deny 2>/dev/zero | grep -v '#'`
+if [ -n "$deny_remote_accessmore" ];then
+    echo deny_remote_accessmore=$deny_remote_accessmore
+else
+    echo deny_remote_accessmore=null
+fi
+
+# 41 
+dns_inof=`more /etc/resolv.conf | grep ^nameserver | awk '{print $NF}'`
+if [ -n "$dns_inof" ];then
+    echo dns_inof=$dns_inof
+else
+    echo dns_inof=null
+fi
+
+
+# 42 None       统计message中使用dns的记录
+dns_use_info=`more /var/log/messages* | grep 'using nameserver' | awk '{print $NF}' | awk -F# '{print $1}' | sort | uniq`
+if [ -n "$dns_use_info" ];then
+    echo dns_use_info=$dns_use_info
+else
+    echo dns_use_info=null
+fi
+
+# 43
+network_connection=`netstat -ant |grep '^tcp'|awk '{print $6}'|sort|uniq -c`
+if [ -n "$network_connection" ];then
+    echo network_connection=$network_connection
+else
+    echo network_connection=null
+fi
+
+
+# 44
+routing_forward=`more /proc/sys/net/ipv4/ip_forward`
+if [ -n "$routing_forward" ];then
+    echo routing_forward=$routing_forward
+else
+    echo routing_forward=null
+fi
+
+# 45
+kernel_abnormal_info=`lsmod | grep -Ev 'ablk_helper|ac97_bus|acpi_power_meter|aesni_intel|ahci|ata_generic|ata_piix|auth_rpcgss|binfmt_misc|bluetooth|bnep|bnx2|bridge|cdrom|cirrus|coretemp|crc_t10dif|crc32_pclmul|crc32c_intel|crct10dif_common|crct10dif_generic|crct10dif_pclmul|cryptd|dca|dcdbas|dm_log|dm_mirror|dm_mod|dm_region_hash|drm|drm_kms_helper|drm_panel_orientation_quirks|e1000|ebtable_broute|ebtable_filter|ebtable_nat|ebtables|edac_core|ext4|fb_sys_fops|floppy|fuse|gf128mul|ghash_clmulni_intel|glue_helper|grace|i2c_algo_bit|i2c_core|i2c_piix4|i7core_edac|intel_powerclamp|ioatdma|ip_set|ip_tables|ip6_tables|ip6t_REJECT|ip6t_rpfilter|ip6table_filter|ip6table_mangle|ip6table_nat|ip6table_raw|ip6table_security|ipmi_devintf|ipmi_msghandler|ipmi_si|ipmi_ssif|ipt_MASQUERADE|ipt_REJECT|iptable_filter|iptable_mangle|iptable_nat|iptable_raw|iptable_security|iTCO_vendor_support|iTCO_wdt|jbd2|joydev|kvm|kvm_intel|libahci|libata|libcrc32c|llc|lockd|lpc_ich|lrw|mbcache|megaraid_sas|mfd_core|mgag200|Module|mptbase|mptscsih|mptspi|nf_conntrack|nf_conntrack_ipv4|nf_conntrack_ipv6|nf_defrag_ipv4|nf_defrag_ipv6|nf_nat|nf_nat_ipv4|nf_nat_ipv6|nf_nat_masquerade_ipv4|nfnetlink|nfnetlink_log|nfnetlink_queue|nfs_acl|nfsd|parport|parport_pc|pata_acpi|pcspkr|ppdev|rfkill|sch_fq_codel|scsi_transport_spi|sd_mod|serio_raw|sg|shpchp|snd|snd_ac97_codec|snd_ens1371|snd_page_alloc|snd_pcm|snd_rawmidi|snd_seq|snd_seq_device|snd_seq_midi|snd_seq_midi_event|snd_timer|soundcore|sr_mod|stp|sunrpc|syscopyarea|sysfillrect|sysimgblt|tcp_lp|ttm|tun|uvcvideo|videobuf2_core|videobuf2_memops|videobuf2_vmalloc|videodev|virtio|virtio_balloon|virtio_console|virtio_net|virtio_pci|virtio_ring|virtio_scsi|vmhgfs|vmw_balloon|vmw_vmci|vmw_vsock_vmci_transport|vmware_balloon|vmwgfx|vsock|xfs|xt_CHECKSUM|xt_conntrack|xt_state'`
+if [ -n "$kernel_abnormal_info" ];then
+    echo kernel_abnormal_info=$kernel_abnormal_info
+else
+    echo kernel_abnormal_info=null
+fi
+
+
+# 46
+systemnum=`cat /etc/redhat-release |grep -o '[0-9]' |head -n 1`
+case $systemnum in
+7)
+high_CPU_info=`ps -aux 2>/dev/zero | sort -nr -k 3 | head -5 | awk '{if($3>=20) print $0}'`
+if [ -n "$high_CPU_info" ];then
+    echo high_CPU_info=$high_CPU_info
+else
+    echo high_CPU_info=null
+fi
+;;
+6)
+high_CPU_info=`ps -aux 2>/dev/zero | grep -v '^USER' | sort -nr -k 3 | head -5`
+if [ -n "$high_CPU_info" ];then
+    echo high_CPU_info=$high_CPU_info
+else
+    echo high_CPU_info=null
+fi
+;;
+*)
+echo "high_CPU_info=null"
+esac
+
+
+# 47 None       显示正常，查看进程mem
+systemnum=`cat /etc/redhat-release |grep -o '[0-9]' |head -n 1`
+case $systemnum in
+7)
+high_MEM_info=`ps -aux 2>/dev/zero | sort -nr -k 4 | head -5 | awk '{if($4>=20) print $0}'`
+if [ -n "$high_MEM_info" ];then
+    echo high_MEM_info=$high_MEM_info
+else
+    echo high_MEM_info=null
+fi
+;;
+6)
+high_MEM_info=`ps -aux 2>/dev/zero | grep -v '^USER' | sort -nr -k 4 | head -5`
+if [ -n "$high_MEM_info" ];then
+    echo high_MEM_info=$high_MEM_info
+else
+    echo high_MEM_info=null
+fi
+;;
+*)
+echo high_MEM_info=null
+esac
+
+
+# 48
+environment_variables=`env`
+if [ -n "$environment_variables" ];then
+    echo environment_variables=$environment_variables
+else
+    echo environment_variables=null
+fi
+
+
+# 49 None   显示cpu，内存，磁盘情况
+s1=`lscpu`
+s2=`free -g`
+s3=`df -hl`
+resource_info="$s1 ### $s2 ### $s3"
+if [ -n "$resource_info" ];then
+    echo resource_info=$resource_info
+else
+    echo resource_info=null
+fi
+
+# 50
+files_MD5=`md5sum /usr/*bin/*`
+if [ -n "$files_MD5" ];then
+    echo files_MD5=$files_MD5
+else
+    echo files_MD5=null
+fi
+
